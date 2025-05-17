@@ -1,0 +1,184 @@
+body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 400px;
+        }
+
+        td, th {
+            border:1px solid black;
+            padding: 8px;
+        }
+
+        caption {
+            font-size: 1.5em;
+            font-weight: bold;
+            padding: 10px;
+            background-color: aliceblue;
+        }
+
+        .num {
+            text-align: right;
+        }
+
+        thead, tfoot {
+            background-color: gray;
+            color: #fff;
+        }
+
+.betano {
+  background-color: #e63946;
+  color: #fff;
+}
+
+.bet365 {
+  background-color: #2a9d8f;
+  color: #fff;
+}
+
+.stake {
+  background-color: #457b9d;
+  color: #fff;
+}
+
+.sportingbet {
+  background-color: #000000; 
+  color: #fff;
+}
+
+.maior-odd {
+  background-color: #ffe066; /* amarelo suave */
+  font-weight: bold;
+}
+
+.menor-odd {
+  background-color: #2e66f5;
+  font-weight: bold;
+}
+
+.tempo-um {
+  background-color: #ffd54f;
+  font-weight: bold;
+}
+
+.tempo-dois {
+  background-color: #aed581;
+  font-weight: bold;
+}
+
+.tempo-tres {
+  background-color: #f8bbd0;
+  font-weight: bold;
+}
+
+.dois-tempo {
+  background-color: #5e0370;
+  font-weight: bold;
+}
+
+.tres-tempo {
+  background-color: #80cbc4;
+  font-weight: bold;
+}
+
+.quatro-tempo {
+  background-color: #0a406c;
+  font-weight: bold;
+}
+
+.cinco-tempo {
+  background-color: #c5e1a5;
+  font-weight: bold;
+}
+
+.seis-tempo {
+  background-color: #ffe082;
+  font-weight: bold;
+}
+
+.sete-tempo {
+  background-color: #ef9a9a;
+  font-weight: bold;
+}
+
+.oito-tempo {
+  background-color: #b2dfdb;
+
+}
+
+.nove-tempo {
+  background-color: #b39ddb;
+  font-weight: bold;
+}
+
+.empate {
+  background-color: #917317;
+  font-weight: bold;
+}
+
+.fora {
+  background-color: #ef5350;
+  font-weight: bold;
+}
+
+.casa {
+  background-color: #5f6438;
+  font-weight: bold;
+}
+
+.jogos-totais {
+  white-space: normal;
+  word-wrap: break-word;
+  text-align: center;
+}
+
+button {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #1d3557, #457b9d);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+button {
+   background: linear-gradient(135deg, #457b9d, #1d3557);
+   transform: scale(1.05);
+   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.button-one {
+  margin: 20px; 
+  padding: 10px 20px;
+  font-size: 16px; 
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  table {
+    width: 100%;
+    font-size: 0.9em;
+  }
+
+  td, th {
+    padding: 6px;
+  }
+
+  caption {
+    font-size: 1.2em;
+    padding: 8px;
+  }
+
+  #atualizar {
+    width: 90%;
+    font-size: 1em;
+  }
+}
+
