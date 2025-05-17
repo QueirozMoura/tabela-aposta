@@ -10,20 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
     Betfair: '#9C27B0',       // roxo
     Unibet: '#FF5722',        // laranja
     '10Bet': '#009688',       // azul esverdeado
-    'Betway': '#3F51B5',      // azul escuro
-    'Coral': '#E91E63',       // rosa
-    'Ladbrokes': '#795548',   // marrom
-    'Bwin': '#607D8B',        // cinza azulado
-    'Sportingbet': '#8BC34A', // verde claro
-    'Marathonbet': '#673AB7', // roxo escuro
-    'BetVictor': '#F44336',   // vermelho
-    '888sport': '#0099FF',    // azul claro
+    Betway: '#3F51B5',        // azul escuro
+    Coral: '#E91E63',         // rosa
+    Ladbrokes: '#795548',     // marrom
+    Bwin: '#607D8B',          // cinza azulado
+    Sportingbet: '#8BC34A',   // verde claro
+    Marathonbet: '#673AB7',   // roxo escuro
+    BetVictor: '#F44336',     // vermelho
+    '888sport': '#0099FF'     // azul claro
     // Pode adicionar outras casas aqui...
   };
 
   async function buscarOdds() {
     try {
-      const response = await fetch('http://localhost:3000/api/odds/premier-league');
+      const response = await fetch('https://tabela-aposta.onrender.com/api/odds/premier-league');
       if (!response.ok) throw new Error('Erro ao buscar dados');
 
       const dados = await response.json();
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         jogo.bookmakers.forEach(casa => {
           const nomeCasa = casa.title || '-';
-          const cor = coresCasas[nomeCasa] || '#ffffff'; // branco padrão se não tiver cor definida
+          const cor = coresCasas[nomeCasa] || '#ffffff'; // branco padrão
           const mercadoH2h = casa.markets.find(m => m.key === 'h2h');
           if (!mercadoH2h) return;
 
