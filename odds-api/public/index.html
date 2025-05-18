@@ -3,32 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tabela de Odds Premier League</title>
+  <title>Tabela de Odds de Futebol</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Tabela de Odds Premier League</h1>
+  <h1>Tabela de Odds de Futebol - +2.5 / -2.5 Gols</h1>
 
   <table id="tabela-jogos" border="1" cellspacing="0" cellpadding="5">
-    <caption>Odds dos jogos</caption>
+    <caption>Odds dos jogos por casa de aposta</caption>
     <thead>
       <tr>
         <th>Jogo</th>
-        <th>Casa de aposta</th>
-        <th>Casa</th>
-        <th>Empate</th>
-        <th>Fora</th>
+        <th>Casa de Aposta</th>
+        <th>+2.5 Gols</th>
+        <th>-2.5 Gols</th>
       </tr>
     </thead>
-    <tbody id="tabela-odds">
-    
+    <tbody>
+      <!-- Os dados da tabela serão inseridos aqui via JS -->
     </tbody>
   </table>
 
   <button id="atualizar">Atualizar Odds</button>
-
   <button class="button-one" id="exportar" onclick="exportTableToExcel()">Exportar para Excel</button>
-
 
   <script src="script.js"></script>
   <script src="export.js"></script>

@@ -5,35 +5,75 @@ import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.ODDS_API_KEY; // pegar a chave da variável de ambiente
+const API_KEY = process.env.ODDS_API_KEY;
+
+// Verifica se a API key está definida
+if (!API_KEY) {
+  console.error("❌ Erro: A variável de ambiente ODDS_API_KEY não está configurada.");
+  process.exit(1);
+}
 
 app.use(cors());
 
-// Rota raiz só para teste
 app.get('/', (req, res) => {
-  res.send('API Odds está funcionando!');
+  res.send('✅ API Odds está funcionando!');
 });
 
-// Rota que busca as odds da Premier League
-app.get('/api/odds/premier-league', async (req, res) => {
-  const sportKey = 'soccer_epl';
-  const regions = 'eu';
-  const markets = 'h2h';
+app.get('/api/odds/futebol', async (req, res) => {
+  const sports = [
+    'soccer_brazil_campeonato',
+    'soccer_spain_la_liga',
+    'soccer_england_championship',
+    'soccer_uefa_champs_league'
+  ];
 
-  const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${API_KEY}&regions=${regions}&markets=${markets}&oddsFormat=decimal`;
+  const regions = 'eu';
+  const markets = 'totals'; // mais/menos gols
+  const oddsFormat = 'decimal';
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      return res.status(response.status).json({ error: 'Erro ao buscar dados da API' });
+    let allOdds = [];
+
+    for (const sport of sports) {
+      const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${API_KEY}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.error(`⚠️ Erro ao buscar dados para ${sport}: ${response.statusText}`);
+        continue; // pula esse esporte
+      }
+
+      const data = await response.json();
+      allOdds = allOdds.concat(data);
     }
-    const data = await response.json();
-    res.json(data);
+
+    const filtered = allOdds.map(jogo => {
+      const oddsMaisMenos = (jogo.bookmakers || []).map(book => {
+        const market = book.markets?.find(m => m.key === 'totals');
+        return {
+          casa: book.title,
+          over: market?.outcomes?.find(o => o.name.toLowerCase().includes('over')),
+          under: market?.outcomes?.find(o => o.name.toLowerCase().includes('under'))
+        };
+      }).filter(book =>
+        ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'].includes(book.casa)
+      );
+
+      return {
+        jogo: `${jogo.home_team} x ${jogo.away_team}`,
+        odds: oddsMaisMenos
+      };
+    });
+
+    console.log(`✅ Foram encontrados ${filtered.length} jogos com odds.`);
+
+    res.json(filtered);
   } catch (error) {
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    console.error('❌ Erro ao buscar odds:', error);
+    res.status(500).json({ error: 'Erro ao buscar odds' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
