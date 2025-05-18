@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabela.innerHTML = '';
 
       if (!dados || dados.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="4">Nenhum dado disponível</td></tr>`;
+        tabela.innerHTML = `<tr><td colspan="5">Nenhum dado disponível</td></tr>`;
         return;
       }
 
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
       console.error('Erro ao buscar odds:', error);
-      tabela.innerHTML = `<tr><td colspan="4">Erro ao carregar os dados</td></tr>`;
+      tabela.innerHTML = `<tr><td colspan="5">Erro ao carregar os dados</td></tr>`;
     }
   }
 
