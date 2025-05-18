@@ -7,7 +7,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ODDS_API_KEY;
 
-// Verifica se a API key está definida
 if (!API_KEY) {
   console.error("❌ Erro: A variável de ambiente ODDS_API_KEY não está configurada.");
   process.exit(1);
@@ -31,6 +30,8 @@ app.get('/api/odds/futebol', async (req, res) => {
   const markets = 'totals'; // mais/menos gols
   const oddsFormat = 'decimal';
 
+  const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
+
   try {
     let allOdds = [];
 
@@ -40,7 +41,7 @@ app.get('/api/odds/futebol', async (req, res) => {
 
       if (!response.ok) {
         console.error(`⚠️ Erro ao buscar dados para ${sport}: ${response.statusText}`);
-        continue; // pula esse esporte
+        continue;
       }
 
       const data = await response.json();
@@ -48,22 +49,29 @@ app.get('/api/odds/futebol', async (req, res) => {
     }
 
     const filtered = allOdds.map(jogo => {
-      const oddsMaisMenos = (jogo.bookmakers || []).map(book => {
+      const oddsMaisMenos = (jogo.bookmakers || []).reduce((acc, book) => {
+        if (!casasPermitidas.includes(book.title)) return acc;
+
         const market = book.markets?.find(m => m.key === 'totals');
-        return {
+        if (!market) return acc;
+
+        const over = market.outcomes.find(o => o.name.toLowerCase().includes('over'));
+        const under = market.outcomes.find(o => o.name.toLowerCase().includes('under'));
+
+        acc.push({
           casa: book.title,
-          over: market?.outcomes?.find(o => o.name.toLowerCase().includes('over')),
-          under: market?.outcomes?.find(o => o.name.toLowerCase().includes('under'))
-        };
-      }).filter(book =>
-        ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'].includes(book.casa)
-      );
+          over,
+          under
+        });
+
+        return acc;
+      }, []);
 
       return {
         jogo: `${jogo.home_team} x ${jogo.away_team}`,
         odds: oddsMaisMenos
       };
-    });
+    }).filter(j => j.odds.length > 0); // Remove jogos sem casas permitidas
 
     console.log(`✅ Foram encontrados ${filtered.length} jogos com odds.`);
 
@@ -71,50 +79,6 @@ app.get('/api/odds/futebol', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao buscar odds:', error);
     res.status(500).json({ error: 'Erro ao buscar odds' });
-  }
-});
-
-// Nova rota para Premier League
-app.get('/api/odds/premier-league', async (req, res) => {
-  const sport = 'soccer_england_premier_league';
-  const regions = 'eu';
-  const markets = 'totals';
-  const oddsFormat = 'decimal';
-
-  try {
-    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${API_KEY}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      console.error(`⚠️ Erro ao buscar Premier League: ${response.statusText}`);
-      return res.status(500).json({ error: 'Erro ao buscar Premier League' });
-    }
-
-    const data = await response.json();
-
-    const filtered = data.map(jogo => {
-      const oddsMaisMenos = (jogo.bookmakers || []).map(book => {
-        const market = book.markets?.find(m => m.key === 'totals');
-        return {
-          casa: book.title,
-          over: market?.outcomes?.find(o => o.name.toLowerCase().includes('over')),
-          under: market?.outcomes?.find(o => o.name.toLowerCase().includes('under'))
-        };
-      }).filter(book =>
-        ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'].includes(book.casa)
-      );
-
-      return {
-        jogo: `${jogo.home_team} x ${jogo.away_team}`,
-        odds: oddsMaisMenos
-      };
-    });
-
-    res.json(filtered);
-
-  } catch (error) {
-    console.error('❌ Erro ao buscar Premier League:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
   }
 });
 
