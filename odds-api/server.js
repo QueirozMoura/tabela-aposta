@@ -74,6 +74,50 @@ app.get('/api/odds/futebol', async (req, res) => {
   }
 });
 
+// Nova rota para Premier League
+app.get('/api/odds/premier-league', async (req, res) => {
+  const sport = 'soccer_england_premier_league';
+  const regions = 'eu';
+  const markets = 'totals';
+  const oddsFormat = 'decimal';
+
+  try {
+    const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${API_KEY}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error(`⚠️ Erro ao buscar Premier League: ${response.statusText}`);
+      return res.status(500).json({ error: 'Erro ao buscar Premier League' });
+    }
+
+    const data = await response.json();
+
+    const filtered = data.map(jogo => {
+      const oddsMaisMenos = (jogo.bookmakers || []).map(book => {
+        const market = book.markets?.find(m => m.key === 'totals');
+        return {
+          casa: book.title,
+          over: market?.outcomes?.find(o => o.name.toLowerCase().includes('over')),
+          under: market?.outcomes?.find(o => o.name.toLowerCase().includes('under'))
+        };
+      }).filter(book =>
+        ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'].includes(book.casa)
+      );
+
+      return {
+        jogo: `${jogo.home_team} x ${jogo.away_team}`,
+        odds: oddsMaisMenos
+      };
+    });
+
+    res.json(filtered);
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar Premier League:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
