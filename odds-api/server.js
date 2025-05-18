@@ -5,7 +5,7 @@ import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe'; // Sua API key da The Odds API
+const API_KEY = process.env.ODDS_API_KEY; // pega da variável de ambiente
 
 app.use(cors());
 
