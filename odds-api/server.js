@@ -5,10 +5,16 @@ import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.ODDS_API_KEY; // pega da variável de ambiente
+const API_KEY = process.env.ODDS_API_KEY; // pegar a chave da variável de ambiente
 
 app.use(cors());
 
+// Rota raiz só para teste
+app.get('/', (req, res) => {
+  res.send('API Odds está funcionando!');
+});
+
+// Rota que busca as odds da Premier League
 app.get('/api/odds/premier-league', async (req, res) => {
   const sportKey = 'soccer_epl';
   const regions = 'eu';
