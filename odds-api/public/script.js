@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const tr = document.createElement('tr');
 
-          // Nome do jogo (ex: Flamengo x Vasco)
+          // Nome do jogo
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
@@ -43,20 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
           const tdMais25 = document.createElement('td');
           const tdMenos25 = document.createElement('td');
 
-          const oddOver = parseFloat(casa.over?.price || 0);
-          const oddUnder = parseFloat(casa.under?.price || 0);
+          if (typeof casa.over?.price === 'number') {
+            tdMais25.textContent = casa.over.price.toFixed(2);
+            tdMais25.style.backgroundColor = casa.over.price >= 2.5 ? 'lightgreen' : 'lightcoral';
+          } else {
+            tdMais25.textContent = '-';
+          }
 
-          tdMais25.textContent = oddOver > 0 ? oddOver.toFixed(2) : '-';
-          tdMenos25.textContent = oddUnder > 0 ? oddUnder.toFixed(2) : '-';
+          if (typeof casa.under?.price === 'number') {
+            tdMenos25.textContent = casa.under.price.toFixed(2);
+            tdMenos25.style.backgroundColor = casa.under.price >= 2.5 ? 'lightgreen' : 'lightcoral';
+          } else {
+            tdMenos25.textContent = '-';
+          }
 
-          if (oddOver >= 2.5) tdMais25.style.backgroundColor = 'lightgreen';
-          else if (oddOver > 0) tdMais25.style.backgroundColor = 'lightcoral';
-
-          if (oddUnder >= 2.5) tdMenos25.style.backgroundColor = 'lightgreen';
-          else if (oddUnder > 0) tdMenos25.style.backgroundColor = 'lightcoral';
-
-          // Colunas extras que a API não cobre — preenche com '-'
-          const colunasExtras = 9; // quantidade de colunas extras
+          // Colunas extras
+          const colunasExtras = 9;
           const colunasFaltando = Array.from({ length: colunasExtras }, () => {
             const td = document.createElement('td');
             td.textContent = '-';
