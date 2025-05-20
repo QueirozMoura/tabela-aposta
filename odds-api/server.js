@@ -5,12 +5,7 @@ import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.ODDS_API_KEY;
-
-if (!API_KEY) {
-  console.error("❌ Erro: A variável de ambiente ODDS_API_KEY não está configurada.");
-  process.exit(1);
-}
+const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe'; // sua chave aqui direto
 
 app.use(cors());
 
@@ -71,7 +66,7 @@ app.get('/api/odds/futebol', async (req, res) => {
         jogo: `${jogo.home_team} x ${jogo.away_team}`,
         odds: oddsMaisMenos
       };
-    }).filter(j => j.odds.length > 0); // Remove jogos sem casas permitidas
+    }).filter(j => j.odds.length > 0);
 
     console.log(`✅ Foram encontrados ${filtered.length} jogos com odds.`);
 
