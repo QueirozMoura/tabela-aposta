@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dados.forEach(jogo => {
         const nomeJogo = jogo.jogo;
 
+        // Se não houver odds para este jogo
         if (!jogo.odds || jogo.odds.length === 0) {
           const tr = document.createElement('tr');
           const td = document.createElement('td');
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Processa odds das casas permitidas
         jogo.odds.forEach(casa => {
           if (!casasPermitidas.includes(casa.casa)) return;
 
@@ -44,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
-          // Odds 1X2 (não disponíveis na API de totais)
+          // Colunas 1X2 - não disponíveis para totals
           const tdCasa = document.createElement('td');
           tdCasa.textContent = '-';
 
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const tdFora = document.createElement('td');
           tdFora.textContent = '-';
 
-          // Odds Mais/Menos 2.5 gols
+          // Colunas Mais/Menos 2.5 gols
           const tdMais25 = document.createElement('td');
           const tdMenos25 = document.createElement('td');
 
@@ -72,15 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tdMenos25.textContent = '-';
           }
 
-          // Colunas extras (para preencher até 16 colunas)
-          const colunasExtrasCount = 10;
-          const colunasExtras = Array.from({ length: colunasExtrasCount }, () => {
+          // Colunas extras para completar 16 colunas
+          const colunasExtras = Array.from({ length: 10 }, () => {
             const td = document.createElement('td');
             td.textContent = '-';
             return td;
           });
 
-          // Monta a linha
+          // Monta linha
           tr.appendChild(tdJogo);
           tr.appendChild(tdCasa);
           tr.appendChild(tdEmpate);
