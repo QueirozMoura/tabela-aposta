@@ -46,10 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
-          // Colunas 1X2 - não disponíveis para totals
+          // Coluna: Nome da casa de aposta
           const tdCasa = document.createElement('td');
-          tdCasa.textContent = '-';
+          tdCasa.textContent = casa.casa;
 
+          // Colunas 1X2 - não disponíveis para totals, coloca '-'
           const tdEmpate = document.createElement('td');
           tdEmpate.textContent = '-';
 
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return td;
           });
 
-          // Monta linha
+          // Monta a linha
           tr.appendChild(tdJogo);
           tr.appendChild(tdCasa);
           tr.appendChild(tdEmpate);
