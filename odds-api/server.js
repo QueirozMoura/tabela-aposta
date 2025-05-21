@@ -19,6 +19,7 @@ async function buscarJogosAPIfootball() {
   });
   if (!response.ok) throw new Error('Erro ao buscar jogos da API-Football');
   const data = await response.json();
+  console.log('Jogos API-Football:', data.response.length);
   return data.response;
 }
 
@@ -43,6 +44,7 @@ app.get('/api/odds/futebol', async (req, res) => {
   try {
     // 1) Buscar jogos na API-Football
     const jogosAPIfootball = await buscarJogosAPIfootball();
+    console.log('Jogos encontrados na API-Football:', jogosAPIfootball.length);
 
     // 2) Buscar odds na The Odds API
     let allOdds = [];
@@ -54,21 +56,19 @@ app.get('/api/odds/futebol', async (req, res) => {
         continue;
       }
       const data = await response.json();
+      console.log(`Odds para ${sport}: ${data.length}`);
       allOdds = allOdds.concat(data);
     }
 
     // 3) Juntar dados de jogos da API-Football com odds da Odds API usando nomes dos times
     const respostaFinal = jogosAPIfootball.map(jogo => {
-      // Montar string para comparar com formato da Odds API
       const nomeJogo = `${jogo.teams.home.name} x ${jogo.teams.away.name}`;
 
-      // Tentar achar o jogo na Odds API comparando nomes (case insensitive)
       const oddsMatch = allOdds.find(oddsJogo => {
         const nomeOdds = `${oddsJogo.home_team} x ${oddsJogo.away_team}`;
         return nomeOdds.toLowerCase() === nomeJogo.toLowerCase();
       });
 
-      // Extrair odds filtrando casas permitidas
       let oddsMaisMenos = [];
       if (oddsMatch) {
         oddsMaisMenos = (oddsMatch.bookmakers || []).reduce((acc, book) => {
@@ -88,6 +88,8 @@ app.get('/api/odds/futebol', async (req, res) => {
         odds: oddsMaisMenos,
       };
     });
+
+    console.log('Jogos com odds combinadas:', respostaFinal.filter(j => j.odds.length > 0).length);
 
     res.json(respostaFinal);
   } catch (error) {
