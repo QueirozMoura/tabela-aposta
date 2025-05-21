@@ -6,7 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function buscarOdds() {
     try {
-      const response = await fetch('http://localhost:3000/api/odds/futebol'); // ajuste a URL conforme seu backend
+      const apiUrl =
+        window.location.hostname === 'localhost'
+          ? 'http://localhost:3000/api/odds/futebol'
+          : '/api/odds/futebol';
+
+      const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Erro ao buscar dados');
 
       const dados = await response.json();
@@ -20,6 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
       dados.forEach(jogo => {
         const nomeJogo = jogo.jogo;
 
+        if (!jogo.odds || jogo.odds.length === 0) {
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 16;
+          td.textContent = `${nomeJogo} - Sem odds disponíveis`;
+          tr.appendChild(td);
+          tabela.appendChild(tr);
+          return;
+        }
+
         jogo.odds.forEach(casa => {
           if (!casasPermitidas.includes(casa.casa)) return;
 
@@ -29,44 +44,43 @@ document.addEventListener('DOMContentLoaded', () => {
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
-          // Odds 1X2 (home = casa, draw = empate, away = fora)
+          // Odds 1X2 (não disponíveis na API de totais)
           const tdCasa = document.createElement('td');
-          tdCasa.textContent = casa.over?.price ? '-' : '-'; // Não temos odds 1X2 da API de totals, mantém "-"
+          tdCasa.textContent = '-';
 
           const tdEmpate = document.createElement('td');
-          tdEmpate.textContent = '-'; // Odds empate (não disponível nesta API de totais)
+          tdEmpate.textContent = '-';
 
           const tdFora = document.createElement('td');
-          tdFora.textContent = '-'; // Odds fora (não disponível)
+          tdFora.textContent = '-';
 
           // Odds Mais/Menos 2.5 gols
           const tdMais25 = document.createElement('td');
           const tdMenos25 = document.createElement('td');
 
-          if (typeof casa.over?.price === 'number') {
-            const valor = casa.over.price.toFixed(2);
-            tdMais25.textContent = valor;
+          if (casa.over && typeof casa.over.price === 'number') {
+            tdMais25.textContent = casa.over.price.toFixed(2);
             tdMais25.style.backgroundColor = casa.over.price >= 2.5 ? 'lightgreen' : 'lightcoral';
           } else {
             tdMais25.textContent = '-';
           }
 
-          if (typeof casa.under?.price === 'number') {
-            const valor = casa.under.price.toFixed(2);
-            tdMenos25.textContent = valor;
+          if (casa.under && typeof casa.under.price === 'number') {
+            tdMenos25.textContent = casa.under.price.toFixed(2);
             tdMenos25.style.backgroundColor = casa.under.price >= 2.5 ? 'lightgreen' : 'lightcoral';
           } else {
             tdMenos25.textContent = '-';
           }
 
-          // Colunas extras (preenchidas com "-")
-          const colunasExtrasCount = 10; // Ajustado para completar 16 colunas no total
+          // Colunas extras (para preencher até 16 colunas)
+          const colunasExtrasCount = 10;
           const colunasExtras = Array.from({ length: colunasExtrasCount }, () => {
             const td = document.createElement('td');
             td.textContent = '-';
             return td;
           });
 
+          // Monta a linha
           tr.appendChild(tdJogo);
           tr.appendChild(tdCasa);
           tr.appendChild(tdEmpate);
