@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const apiUrl =
         window.location.hostname === 'localhost'
           ? 'http://localhost:3000/api/odds/futebol'
-          : '/api/odds/futebol';
+          : 'https://tabela-aposta.onrender.com/api/odds/futebol';
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Erro ao buscar dados');
@@ -40,22 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const tr = document.createElement('tr');
 
-          // Coluna: Nome do jogo
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
-          // Coluna: Casa de aposta
           const tdCasa = document.createElement('td');
           tdCasa.textContent = casa.casa;
 
-          // Colunas Empate e Fora (não disponíveis no mock, colocar '-')
           const tdEmpate = document.createElement('td');
           tdEmpate.textContent = '-';
 
           const tdFora = document.createElement('td');
           tdFora.textContent = '-';
 
-          // Colunas Mais 2.5 e Menos 2.5 gols
           const tdMais25 = document.createElement('td');
           if (casa.over && typeof casa.over.price === 'number') {
             tdMais25.textContent = casa.over.price.toFixed(2);
@@ -72,14 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
             tdMenos25.textContent = '-';
           }
 
-          // Colunas extras para completar 16 colunas da tabela
           const colunasExtras = Array.from({ length: 10 }, () => {
             const td = document.createElement('td');
             td.textContent = '-';
             return td;
           });
 
-          // Monta a linha da tabela
           tr.appendChild(tdJogo);
           tr.appendChild(tdCasa);
           tr.appendChild(tdEmpate);
@@ -99,6 +93,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAtualizar.addEventListener('click', buscarOdds);
 
-  // Busca os dados assim que a página carrega
-  buscarOdds();
+  buscarOdds(); // Busca os dados ao carregar a página
 });
