@@ -1,40 +1,41 @@
 import express from 'express';
 import axios from 'axios';
-import dotenv from 'dotenv';
 import cors from 'cors';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Sua chave da The Odds API diretamente no código
+const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
 app.use(cors());
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
-    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_bra/odds', {
+    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer/odds', {
       params: {
-        apiKey: process.env.API_KEY,
-        regions: 'br',       // focar Brasil
-        markets: 'h2h,totals', // mercados 1x2 e over/under
+        apiKey: API_KEY,
+        regions: 'br,eu', // Brasil e Europa
+        markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
     });
 
     const jogos = response.data.map(jogo => {
+      const isBrasil = jogo.sport_key.includes('bra');
+
       return {
         timeCasa: jogo.home_team,
         timeFora: jogo.away_team,
         data: jogo.commence_time,
+        isBrasil,
         odds: jogo.bookmakers.map(casa => {
-          // Inicializa odds para mercados que vamos mapear
           let h2h = null;
           let over = null;
           let under = null;
 
           casa.markets.forEach(mercado => {
             if (mercado.key === 'h2h') {
-              // h2h tem 3 outcomes: home, draw, away
               h2h = {};
               mercado.outcomes.forEach(outcome => {
                 if (outcome.name === jogo.home_team) h2h.home = outcome.price;
