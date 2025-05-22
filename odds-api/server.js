@@ -8,7 +8,10 @@ const PORT = process.env.PORT || 3000;
 // Sua chave da The Odds API diretamente no código
 const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
-app.use(cors());
+// CORS configurado para permitir o frontend no GitHub Pages
+app.use(cors({
+  origin: 'https://queirozmoura.github.io'
+}));
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
