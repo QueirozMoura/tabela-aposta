@@ -6,22 +6,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
-// Permitir acesso CORS para seu frontend
 app.use(cors());
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
-    // Chamada para a API da The Odds API - usando um esporte válido e região válida
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
       params: {
         apiKey: API_KEY,
-        regions: 'eu',        // Região válida: europa
-        markets: 'h2h,totals', // mercados que queremos
+        regions: 'eu',  // melhor só 'eu' para evitar erro invalid_region
+        markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
     });
 
-    // Mapear resposta para formato que seu frontend espera
     const jogos = response.data.map(jogo => {
       return {
         timeCasa: jogo.home_team,
@@ -59,19 +56,16 @@ app.get('/api/odds/futebol', async (req, res) => {
     });
 
     res.json(jogos);
-
   } catch (error) {
     console.error('Erro ao buscar dados da The Odds API:', error.response?.data || error.message);
     res.status(500).json({ erro: 'Erro ao buscar dados reais da API' });
   }
 });
 
-// Rota raiz só para teste simples
 app.get('/', (req, res) => {
   res.send('API de Odds rodando 🔥');
 });
 
-// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
