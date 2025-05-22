@@ -6,9 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function buscarOdds() {
     const url = 'https://tabela-aposta.onrender.com/api/odds/futebol';
- // Agora usando seu backend
 
     try {
+      // Exibe mensagem de carregamento
       tabela.innerHTML = `<tr><td colspan="10">Carregando dados...</td></tr>`;
 
       const response = await fetch(url);
@@ -16,12 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const dados = await response.json();
 
+      // Caso não tenha dados
       if (!dados || dados.length === 0) {
         tabela.innerHTML = `<tr><td colspan="10">Nenhum dado disponível</td></tr>`;
         return;
       }
 
-      tabela.innerHTML = '';
+      tabela.innerHTML = ''; // Limpa a tabela
 
       dados.forEach(jogo => {
         const nomeJogo = `${jogo.timeCasa} x ${jogo.timeFora}`;
@@ -29,12 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let maiorOver = 0;
         let maiorUnder = 0;
 
+        // Descobre maiores odds de over/under entre as casas permitidas
         jogo.odds.forEach(bk => {
           if (!casasPermitidas.includes(bk.casa)) return;
           if (bk.over && bk.over > maiorOver) maiorOver = bk.over;
           if (bk.under && bk.under > maiorUnder) maiorUnder = bk.under;
         });
 
+        // Gera as linhas da tabela
         jogo.odds.forEach(bk => {
           if (!casasPermitidas.includes(bk.casa)) return;
 
@@ -54,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (bk.under && bk.under === maiorUnder) tdUnder.style.backgroundColor = 'lightblue';
           tr.appendChild(tdUnder);
 
-          tr.innerHTML += `<td>-</td><td>-</td><td>-</td><td>-</td>`; // placeholders do HT/FT
+          // Placeholder de colunas adicionais
+          tr.innerHTML += `<td>-</td><td>-</td><td>-</td><td>-</td>`;
 
           tabela.appendChild(tr);
         });
@@ -66,5 +70,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnAtualizar.addEventListener('click', buscarOdds);
-  buscarOdds();
+  buscarOdds(); // busca inicial ao carregar a página
 });
