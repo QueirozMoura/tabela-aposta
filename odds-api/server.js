@@ -1,6 +1,6 @@
-import express from 'express';
-import axios from 'axios';
-import cors from 'cors';
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,7 +13,7 @@ app.get('/api/odds/futebol', async (req, res) => {
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
       params: {
         apiKey: API_KEY,
-        regions: 'eu',  // melhor só 'eu' para evitar erro invalid_region
+        regions: 'eu',  // usar só 'eu' para evitar erro invalid_region
         markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
