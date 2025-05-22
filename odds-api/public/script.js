@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
 
   async function buscarOdds() {
-    const url = '/api/odds/futebol'; // Agora usando seu backend
+    const url = 'https://tabela-aposta.onrender.com/api/odds/futebol';
+ // Agora usando seu backend
 
     try {
       tabela.innerHTML = `<tr><td colspan="10">Carregando dados...</td></tr>`;
