@@ -6,10 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function buscarOdds() {
     try {
-      const apiUrl =
-        window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api/odds/futebol'
-          : 'https://tabela-aposta.onrender.com/api/odds/futebol';
+      const apiUrl = 'https://tabela-aposta.onrender.com/api/odds/futebol';
 
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Erro ao buscar dados');
@@ -40,18 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const tr = document.createElement('tr');
 
+          // Nome do jogo
           const tdJogo = document.createElement('td');
           tdJogo.textContent = nomeJogo;
 
+          // Casa de aposta
           const tdCasa = document.createElement('td');
           tdCasa.textContent = casa.casa;
 
+          // Empate e Fora (não usados no mock)
           const tdEmpate = document.createElement('td');
           tdEmpate.textContent = '-';
 
           const tdFora = document.createElement('td');
           tdFora.textContent = '-';
 
+          // Mais de 2.5 gols
           const tdMais25 = document.createElement('td');
           if (casa.over && typeof casa.over.price === 'number') {
             tdMais25.textContent = casa.over.price.toFixed(2);
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tdMais25.textContent = '-';
           }
 
+          // Menos de 2.5 gols
           const tdMenos25 = document.createElement('td');
           if (casa.under && typeof casa.under.price === 'number') {
             tdMenos25.textContent = casa.under.price.toFixed(2);
@@ -68,12 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tdMenos25.textContent = '-';
           }
 
+          // Colunas extras para completar a tabela
           const colunasExtras = Array.from({ length: 10 }, () => {
             const td = document.createElement('td');
             td.textContent = '-';
             return td;
           });
 
+          // Montar a linha
           tr.appendChild(tdJogo);
           tr.appendChild(tdCasa);
           tr.appendChild(tdEmpate);
@@ -93,5 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnAtualizar.addEventListener('click', buscarOdds);
 
-  buscarOdds(); // Busca os dados ao carregar a página
+  // Carrega os dados ao iniciar a página
+  buscarOdds();
 });
