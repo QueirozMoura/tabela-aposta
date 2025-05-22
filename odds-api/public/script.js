@@ -1,74 +1,71 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const tabela = document.getElementById('tabela-jogos').getElementsByTagName('tbody')[0];
-  const btnAtualizar = document.getElementById('atualizar');
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
 
-  const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
+const app = express();
+const PORT = process.env.PORT || 3000;
+const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
-  async function buscarOdds() {
-    const url = 'https://tabela-aposta.onrender.com/api/odds/futebol';
+app.use(cors());
 
-    try {
-      // Exibe mensagem de carregamento
-      tabela.innerHTML = `<tr><td colspan="10">Carregando dados...</td></tr>`;
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Erro ao buscar odds');
-
-      const dados = await response.json();
-
-      // Caso não tenha dados
-      if (!dados || dados.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="10">Nenhum dado disponível</td></tr>`;
-        return;
+app.get('/api/odds/futebol', async (req, res) => {
+  try {
+    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
+      params: {
+        apiKey: API_KEY,
+        regions: 'eu',  // usar só 'eu' por exemplo
+        markets: 'h2h,totals',
+        oddsFormat: 'decimal'
       }
+    });
 
-      tabela.innerHTML = ''; // Limpa a tabela
+    const jogos = response.data.map(jogo => {
+      return {
+        timeCasa: jogo.home_team,
+        timeFora: jogo.away_team,
+        data: jogo.commence_time,
+        odds: jogo.bookmakers.map(casa => {
+          let h2h = null;
+          let over = null;
+          let under = null;
 
-      dados.forEach(jogo => {
-        const nomeJogo = `${jogo.timeCasa} x ${jogo.timeFora}`;
+          casa.markets.forEach(mercado => {
+            if (mercado.key === 'h2h') {
+              h2h = {};
+              mercado.outcomes.forEach(outcome => {
+                if (outcome.name === jogo.home_team) h2h.home = outcome.price;
+                else if (outcome.name.toLowerCase() === 'draw' || outcome.name.toLowerCase() === 'empate') h2h.draw = outcome.price;
+                else if (outcome.name === jogo.away_team) h2h.away = outcome.price;
+              });
+            } else if (mercado.key === 'totals') {
+              mercado.outcomes.forEach(outcome => {
+                if (outcome.name.toLowerCase().includes('over')) over = outcome.price;
+                else if (outcome.name.toLowerCase().includes('under')) under = outcome.price;
+              });
+            }
+          });
 
-        let maiorOver = 0;
-        let maiorUnder = 0;
+          return {
+            casa: casa.title,
+            h2h,
+            over,
+            under
+          };
+        })
+      };
+    });
 
-        // Descobre maiores odds de over/under entre as casas permitidas
-        jogo.odds.forEach(bk => {
-          if (!casasPermitidas.includes(bk.casa)) return;
-          if (bk.over && bk.over > maiorOver) maiorOver = bk.over;
-          if (bk.under && bk.under > maiorUnder) maiorUnder = bk.under;
-        });
-
-        // Gera as linhas da tabela
-        jogo.odds.forEach(bk => {
-          if (!casasPermitidas.includes(bk.casa)) return;
-
-          const tr = document.createElement('tr');
-          tr.innerHTML += `<td>${nomeJogo}</td>`;
-          tr.innerHTML += `<td>${bk.h2h?.home?.toFixed(2) || '-'}</td>`;
-          tr.innerHTML += `<td>${bk.h2h?.draw?.toFixed(2) || '-'}</td>`;
-          tr.innerHTML += `<td>${bk.h2h?.away?.toFixed(2) || '-'}</td>`;
-
-          const tdOver = document.createElement('td');
-          tdOver.textContent = bk.over?.toFixed(2) || '-';
-          if (bk.over && bk.over === maiorOver) tdOver.style.backgroundColor = 'lightgreen';
-          tr.appendChild(tdOver);
-
-          const tdUnder = document.createElement('td');
-          tdUnder.textContent = bk.under?.toFixed(2) || '-';
-          if (bk.under && bk.under === maiorUnder) tdUnder.style.backgroundColor = 'lightblue';
-          tr.appendChild(tdUnder);
-
-          // Placeholder de colunas adicionais
-          tr.innerHTML += `<td>-</td><td>-</td><td>-</td><td>-</td>`;
-
-          tabela.appendChild(tr);
-        });
-      });
-    } catch (error) {
-      console.error('Erro ao buscar odds:', error);
-      tabela.innerHTML = `<tr><td colspan="10">Erro ao carregar os dados</td></tr>`;
-    }
+    res.json(jogos);
+  } catch (error) {
+    console.error('Erro ao buscar dados da The Odds API:', error.response?.data || error.message);
+    res.status(500).json({ erro: 'Erro ao buscar dados reais da API' });
   }
+});
 
-  btnAtualizar.addEventListener('click', buscarOdds);
-  buscarOdds(); // busca inicial ao carregar a página
+app.get('/', (req, res) => {
+  res.send('API de Odds rodando 🔥');
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
