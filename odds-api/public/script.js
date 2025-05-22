@@ -3,91 +3,110 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAtualizar = document.getElementById('atualizar');
 
   const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
+  const apiKey = '5efb88d1faf5b16676df21b8ce71d6fe';
 
   async function buscarOdds() {
+    const url = `https://api.the-odds-api.com/v4/sports/soccer_bra/odds/?regions=br&markets=h2h,totals&apiKey=${apiKey}`;
     try {
-      const apiUrl =
-        window.location.hostname === 'localhost'
-          ? 'http://localhost:3000/api/odds/futebol'
-          : 'https://tabela-aposta.onrender.com/api/odds/futebol';
+      tabela.innerHTML = `<tr><td colspan="16">Carregando dados...</td></tr>`;
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error('Erro ao buscar dados');
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Erro ao buscar odds');
 
       const dados = await response.json();
-      tabela.innerHTML = '';
 
       if (!dados || dados.length === 0) {
         tabela.innerHTML = `<tr><td colspan="16">Nenhum dado disponível</td></tr>`;
         return;
       }
 
+      tabela.innerHTML = '';
+
+      // Vamos iterar nos jogos
       dados.forEach(jogo => {
-        const nomeJogo = jogo.jogo;
+        const nomeJogo = `${jogo.home_team} x ${jogo.away_team}`;
+        const data = new Date(jogo.commence_time).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-        if (!jogo.odds || jogo.odds.length === 0) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = 16;
-          td.textContent = `${nomeJogo} - Sem odds disponíveis`;
-          tr.appendChild(td);
-          tabela.appendChild(tr);
-          return;
-        }
+        // Encontrar casa com maior Over e Under para destaque
+        let maiorOver = 0;
+        let maiorUnder = 0;
 
-        jogo.odds.forEach(casa => {
-          if (!casasPermitidas.includes(casa.casa)) return;
+        // Primeiro achamos as maiores odds Over e Under entre casas permitidas
+        jogo.bookmakers.forEach(bk => {
+          if (!casasPermitidas.includes(bk.title)) return;
+          const totals = bk.markets.find(m => m.key === 'totals');
+          if (totals) {
+            totals.outcomes.forEach(o => {
+              if (o.name.toLowerCase().includes('over') && o.price > maiorOver) maiorOver = o.price;
+              if (o.name.toLowerCase().includes('under') && o.price > maiorUnder) maiorUnder = o.price;
+            });
+          }
+        });
 
-          const tr = document.createElement('tr');
+        // Agora para cada casa permitida, monta uma linha na tabela
+        jogo.bookmakers.forEach(bk => {
+          if (!casasPermitidas.includes(bk.title)) return;
 
-          // Coluna: Nome do jogo
-          const tdJogo = document.createElement('td');
-          tdJogo.textContent = nomeJogo;
+          const h2h = bk.markets.find(m => m.key === 'h2h');
+          const totals = bk.markets.find(m => m.key === 'totals');
 
-          // Coluna: Casa de aposta
-          const tdCasa = document.createElement('td');
-          tdCasa.textContent = casa.casa;
+          // Valores default (caso não tenham odds)
+          let oddCasa = '-';
+          let oddEmpate = '-';
+          let oddFora = '-';
+          let oddOver = '-';
+          let oddUnder = '-';
 
-          // Colunas Empate e Fora (não disponíveis no mock, colocar '-')
-          const tdEmpate = document.createElement('td');
-          tdEmpate.textContent = '-';
-
-          const tdFora = document.createElement('td');
-          tdFora.textContent = '-';
-
-          // Colunas Mais 2.5 e Menos 2.5 gols
-          const tdMais25 = document.createElement('td');
-          if (casa.over && typeof casa.over.price === 'number') {
-            tdMais25.textContent = casa.over.price.toFixed(2);
-            tdMais25.style.backgroundColor = casa.over.price >= 2.5 ? 'lightgreen' : 'lightcoral';
-          } else {
-            tdMais25.textContent = '-';
+          if (h2h && h2h.outcomes) {
+            h2h.outcomes.forEach(outcome => {
+              if (outcome.name === jogo.home_team) oddCasa = outcome.price.toFixed(2);
+              else if (outcome.name.toLowerCase() === 'draw' || outcome.name.toLowerCase() === 'empate') oddEmpate = outcome.price.toFixed(2);
+              else if (outcome.name === jogo.away_team) oddFora = outcome.price.toFixed(2);
+            });
           }
 
-          const tdMenos25 = document.createElement('td');
-          if (casa.under && typeof casa.under.price === 'number') {
-            tdMenos25.textContent = casa.under.price.toFixed(2);
-            tdMenos25.style.backgroundColor = casa.under.price >= 2.5 ? 'lightgreen' : 'lightcoral';
-          } else {
-            tdMenos25.textContent = '-';
+          if (totals && totals.outcomes) {
+            totals.outcomes.forEach(outcome => {
+              if (outcome.name.toLowerCase().includes('over')) oddOver = outcome.price.toFixed(2);
+              if (outcome.name.toLowerCase().includes('under')) oddUnder = outcome.price.toFixed(2);
+            });
           }
 
-          // Colunas extras para completar 16 colunas da tabela
-          const colunasExtras = Array.from({ length: 10 }, () => {
+          const tr = document.createElement('tr');
+
+          // Colunas conforme seu HTML:
+          // 1 - Jogo Atuais
+          tr.innerHTML += `<td>${nomeJogo}</td>`;
+
+          // 2 - Casa (Liga/Campeonato não vem pela API, pode ficar '-')
+          tr.innerHTML += `<td>-</td>`;
+
+          // 3 - Empate
+          tr.innerHTML += `<td>${oddEmpate}</td>`;
+
+          // 4 - Fora
+          tr.innerHTML += `<td>${oddFora}</td>`;
+
+          // 5 - Mais 2,5 (Over)
+          const tdOver = document.createElement('td');
+          tdOver.textContent = oddOver;
+          if (parseFloat(oddOver) === maiorOver) tdOver.style.backgroundColor = 'lightgreen';
+          tr.appendChild(tdOver);
+
+          // 6 - Menos 2,5 (Under)
+          const tdUnder = document.createElement('td');
+          tdUnder.textContent = oddUnder;
+          if (parseFloat(oddUnder) === maiorUnder) tdUnder.style.backgroundColor = 'lightblue';
+          tr.appendChild(tdUnder);
+
+          // Colunas 7 a 16 são apostas de tempo e combinadas que a API não oferece direto, então preenchemos com '-'
+          for (let i = 7; i <= 16; i++) {
             const td = document.createElement('td');
             td.textContent = '-';
-            return td;
-          });
+            tr.appendChild(td);
+          }
 
-          // Monta a linha da tabela
-          tr.appendChild(tdJogo);
-          tr.appendChild(tdCasa);
-          tr.appendChild(tdEmpate);
-          tr.appendChild(tdFora);
-          tr.appendChild(tdMais25);
-          tr.appendChild(tdMenos25);
-          colunasExtras.forEach(td => tr.appendChild(td));
-
+          // Append linha
           tabela.appendChild(tr);
         });
       });
@@ -98,7 +117,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnAtualizar.addEventListener('click', buscarOdds);
-
-  // Busca os dados assim que a página carrega
   buscarOdds();
 });
