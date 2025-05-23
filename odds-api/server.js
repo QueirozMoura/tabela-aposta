@@ -4,16 +4,23 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+
+const THE_ODDS_API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+const API_FOOTBALL_KEY = 'a4fe12802a4eb8cb750b00a310a6658b';
 
 app.use(cors());
 
+app.get('/', (req, res) => {
+  res.send('API de Odds rodando 🔥');
+});
+
+// ROTA PRINCIPAL - Odds H2H e Totals
 app.get('/api/odds/futebol', async (req, res) => {
   try {
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
       params: {
-        apiKey: API_KEY,
-        regions: 'eu',  // usar só 'eu' para evitar erro invalid_region
+        apiKey: THE_ODDS_API_KEY,
+        regions: 'eu',
         markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
@@ -62,8 +69,74 @@ app.get('/api/odds/futebol', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('API de Odds rodando 🔥');
+// ROTA EXTRA - Mercado Half Time / Full Time
+app.get('/api/odds-extras/htft', async (req, res) => {
+  const { timeCasa, timeFora, data } = req.query;
+
+  if (!timeCasa || !timeFora || !data) {
+    return res.status(400).json({ erro: 'Parâmetros obrigatórios: timeCasa, timeFora, data' });
+  }
+
+  try {
+    const options = {
+      method: 'GET',
+      url: 'https://v3.football.api-sports.io/odds',
+      params: {
+        league: 39, // Premier League
+        season: 2024,
+        date: data,
+        bet: 'Half Time / Full Time'
+      },
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY
+      }
+    };
+
+    const response = await axios.request(options);
+    const jogos = response.data.response || [];
+
+    const oddsMap = {};
+
+    for (const jogo of jogos) {
+      const home = jogo.teams?.home?.name?.toLowerCase();
+      const away = jogo.teams?.away?.name?.toLowerCase();
+
+      if (
+        home?.includes(timeCasa.toLowerCase()) &&
+        away?.includes(timeFora.toLowerCase())
+      ) {
+        const apostas = jogo.bookmakers?.[0]?.bets?.[0]?.values || [];
+
+        apostas.forEach(opcao => {
+          const nome = opcao.value;
+          const odd = opcao.odd;
+
+          switch (nome) {
+            case 'Home/Home':
+              oddsMap['Casa/Casa'] = odd;
+              break;
+            case 'Home/Draw':
+              oddsMap['Casa/Empate'] = odd;
+              break;
+            case 'Home/Away':
+              oddsMap['Casa/Fora'] = odd;
+              break;
+            case 'Draw/Home':
+              oddsMap['Empate/Casa'] = odd;
+              break;
+          }
+        });
+
+        break; // já encontrou o jogo, não precisa continuar
+      }
+    }
+
+    res.json(oddsMap);
+  } catch (error) {
+    console.error('Erro ao buscar odds extras da API-Football:', error.response?.data || error.message);
+    res.status(500).json({ erro: 'Erro ao buscar odds extras da API-Football' });
+  }
 });
 
 app.listen(PORT, () => {

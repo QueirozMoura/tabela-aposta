@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
 
-  // Cria e retorna uma linha (<tr>) da tabela para uma casa de aposta
-  function criarLinha(nomeJogo, bk, maiorOver, maiorUnder) {
+  function criarTd(texto) {
+    const td = document.createElement('td');
+    td.textContent = texto;
+    return td;
+  }
+
+  function criarLinha(nomeJogo, bk, maiorOver, maiorUnder, oddsExtra = {}) {
     const tr = document.createElement('tr');
 
     tr.appendChild(criarTd(nomeJogo));
@@ -21,19 +26,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (bk.under && bk.under === maiorUnder) tdUnder.style.backgroundColor = 'lightblue';
     tr.appendChild(tdUnder);
 
-    // Colunas extras vazias (4 colunas)
-    for (let i = 0; i < 4; i++) {
-      tr.appendChild(criarTd('-'));
-    }
+    tr.appendChild(criarTd(oddsExtra['Casa/Casa'] || '-'));
+    tr.appendChild(criarTd(oddsExtra['Casa/Empate'] || '-'));
+    tr.appendChild(criarTd(oddsExtra['Casa/Fora'] || '-'));
+    tr.appendChild(criarTd(oddsExtra['Empate/Casa'] || '-'));
 
     return tr;
   }
 
-  // Cria um <td> com texto
-  function criarTd(texto) {
-    const td = document.createElement('td');
-    td.textContent = texto;
-    return td;
+  async function buscarOddsExtras(timeCasa, timeFora, data) {
+    const url = `https://tabela-aposta.onrender.com/api/odds-extras/htft?timeCasa=${encodeURIComponent(timeCasa)}&timeFora=${encodeURIComponent(timeFora)}&data=${data}`;
+    try {
+      const res = await fetch(url);
+      return await res.json();
+    } catch (error) {
+      console.error('Erro ao buscar odds extras via backend:', error);
+      return {};
+    }
   }
 
   async function buscarOdds() {
@@ -52,28 +61,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      tabela.innerHTML = ''; // limpa a tabela antes de preencher
+      const linhasComOdds = await Promise.all(
+        dados.map(async (jogo) => {
+          const nomeJogo = `${jogo.timeCasa} x ${jogo.timeFora}`;
+          const dataJogo = jogo.data?.split('T')[0];
 
-      dados.forEach(jogo => {
-        const nomeJogo = `${jogo.timeCasa} x ${jogo.timeFora}`;
+          let maiorOver = 0;
+          let maiorUnder = 0;
 
-        let maiorOver = 0;
-        let maiorUnder = 0;
+          jogo.odds.forEach(bk => {
+            if (!casasPermitidas.includes(bk.casa)) return;
+            if (bk.over && bk.over > maiorOver) maiorOver = bk.over;
+            if (bk.under && bk.under > maiorUnder) maiorUnder = bk.under;
+          });
 
-        // Encontra os maiores odds over e under nas casas permitidas
-        jogo.odds.forEach(bk => {
-          if (!casasPermitidas.includes(bk.casa)) return;
-          if (bk.over && bk.over > maiorOver) maiorOver = bk.over;
-          if (bk.under && bk.under > maiorUnder) maiorUnder = bk.under;
-        });
+          const oddsExtras = await buscarOddsExtras(jogo.timeCasa, jogo.timeFora, dataJogo);
 
-        // Para cada casa de aposta permitida, cria a linha e adiciona na tabela
-        jogo.odds.forEach(bk => {
-          if (!casasPermitidas.includes(bk.casa)) return;
-          const linha = criarLinha(nomeJogo, bk, maiorOver, maiorUnder);
-          tabela.appendChild(linha);
-        });
-      });
+          return jogo.odds
+            .filter(bk => casasPermitidas.includes(bk.casa))
+            .map(bk => criarLinha(nomeJogo, bk, maiorOver, maiorUnder, oddsExtras));
+        })
+      );
+
+      tabela.innerHTML = '';
+      linhasComOdds.flat().forEach(linha => tabela.appendChild(linha));
+
     } catch (error) {
       console.error('Erro ao buscar odds:', error);
       tabela.innerHTML = `<tr><td colspan="10">Erro ao carregar os dados</td></tr>`;
@@ -81,5 +93,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnAtualizar.addEventListener('click', buscarOdds);
-  buscarOdds(); // busca inicial
+  buscarOdds(); // Busca inicial
 });
