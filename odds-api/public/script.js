@@ -1,97 +1,144 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const tabela = document.getElementById('tabela-jogos').getElementsByTagName('tbody')[0];
-  const btnAtualizar = document.getElementById('atualizar');
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
 
-  const casasPermitidas = ['Betano', 'KTO', 'Pinnacle', 'Bet365', 'Superbet'];
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-  function criarTd(texto) {
-    const td = document.createElement('td');
-    td.textContent = texto;
-    return td;
-  }
+const THE_ODDS_API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+const API_FOOTBALL_KEY = 'a4fe12802a4eb8cb750b00a310a6658b';
 
-  function criarLinha(nomeJogo, bk, maiorOver, maiorUnder, oddsExtra = {}) {
-    const tr = document.createElement('tr');
+app.use(cors());
 
-    tr.appendChild(criarTd(nomeJogo));
-    tr.appendChild(criarTd(bk.h2h?.home?.toFixed(2) || '-'));
-    tr.appendChild(criarTd(bk.h2h?.draw?.toFixed(2) || '-'));
-    tr.appendChild(criarTd(bk.h2h?.away?.toFixed(2) || '-'));
+app.get('/', (req, res) => {
+  res.send('API de Odds rodando 🔥');
+});
 
-    const tdOver = criarTd(bk.over?.toFixed(2) || '-');
-    if (bk.over && bk.over === maiorOver) tdOver.style.backgroundColor = 'lightgreen';
-    tr.appendChild(tdOver);
-
-    const tdUnder = criarTd(bk.under?.toFixed(2) || '-');
-    if (bk.under && bk.under === maiorUnder) tdUnder.style.backgroundColor = 'lightblue';
-    tr.appendChild(tdUnder);
-
-    tr.appendChild(criarTd(oddsExtra['Casa/Casa'] || '-'));
-    tr.appendChild(criarTd(oddsExtra['Casa/Empate'] || '-'));
-    tr.appendChild(criarTd(oddsExtra['Casa/Fora'] || '-'));
-    tr.appendChild(criarTd(oddsExtra['Empate/Casa'] || '-'));
-
-    return tr;
-  }
-
-  async function buscarOddsExtras(timeCasa, timeFora, data) {
-    const url = `https://tabela-aposta.onrender.com/api/odds-extras/htft?timeCasa=${encodeURIComponent(timeCasa)}&timeFora=${encodeURIComponent(timeFora)}&data=${data}`;
-    try {
-      const res = await fetch(url);
-      return await res.json();
-    } catch (error) {
-      console.error('Erro ao buscar odds extras via backend:', error);
-      return {};
-    }
-  }
-
-  async function buscarOdds() {
-    const url = 'https://tabela-aposta.onrender.com/api/odds/futebol';
-
-    try {
-      tabela.innerHTML = `<tr><td colspan="10">Carregando dados...</td></tr>`;
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
-
-      const dados = await response.json();
-
-      if (!dados || dados.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="10">Nenhum dado disponível</td></tr>`;
-        return;
+// ROTA PRINCIPAL - Odds H2H e Totals
+app.get('/api/odds/futebol', async (req, res) => {
+  try {
+    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
+      params: {
+        apiKey: THE_ODDS_API_KEY,
+        regions: 'eu',
+        markets: 'h2h,totals',
+        oddsFormat: 'decimal'
       }
+    });
 
-      const linhasComOdds = await Promise.all(
-        dados.map(async (jogo) => {
-          const nomeJogo = `${jogo.timeCasa} x ${jogo.timeFora}`;
-          const dataJogo = jogo.data?.split('T')[0];
+    const jogos = response.data.map(jogo => {
+      return {
+        timeCasa: jogo.home_team,
+        timeFora: jogo.away_team,
+        data: jogo.commence_time,
+        odds: jogo.bookmakers.map(casa => {
+          let h2h = null;
+          let over = null;
+          let under = null;
 
-          let maiorOver = 0;
-          let maiorUnder = 0;
-
-          jogo.odds.forEach(bk => {
-            if (!casasPermitidas.includes(bk.casa)) return;
-            if (bk.over && bk.over > maiorOver) maiorOver = bk.over;
-            if (bk.under && bk.under > maiorUnder) maiorUnder = bk.under;
+          casa.markets.forEach(mercado => {
+            if (mercado.key === 'h2h') {
+              h2h = {};
+              mercado.outcomes.forEach(outcome => {
+                if (outcome.name === jogo.home_team) h2h.home = outcome.price;
+                else if (outcome.name.toLowerCase() === 'draw' || outcome.name.toLowerCase() === 'empate') h2h.draw = outcome.price;
+                else if (outcome.name === jogo.away_team) h2h.away = outcome.price;
+              });
+            } else if (mercado.key === 'totals') {
+              mercado.outcomes.forEach(outcome => {
+                if (outcome.name.toLowerCase().includes('over')) over = outcome.price;
+                else if (outcome.name.toLowerCase().includes('under')) under = outcome.price;
+              });
+            }
           });
 
-          const oddsExtras = await buscarOddsExtras(jogo.timeCasa, jogo.timeFora, dataJogo);
-
-          return jogo.odds
-            .filter(bk => casasPermitidas.includes(bk.casa))
-            .map(bk => criarLinha(nomeJogo, bk, maiorOver, maiorUnder, oddsExtras));
+          return {
+            casa: casa.title,
+            h2h,
+            over,
+            under
+          };
         })
-      );
+      };
+    });
 
-      tabela.innerHTML = '';
-      linhasComOdds.flat().forEach(linha => tabela.appendChild(linha));
+    res.json(jogos);
+  } catch (error) {
+    console.error('Erro ao buscar dados da The Odds API:', error.response?.data || error.message);
+    res.status(500).json({ erro: 'Erro ao buscar dados reais da API' });
+  }
+});
 
-    } catch (error) {
-      console.error('Erro ao buscar odds:', error);
-      tabela.innerHTML = `<tr><td colspan="10">Erro ao carregar os dados</td></tr>`;
-    }
+// ROTA EXTRA - Mercado Half Time / Full Time
+app.get('/api/odds-extras/htft', async (req, res) => {
+  const { timeCasa, timeFora, data } = req.query;
+
+  if (!timeCasa || !timeFora || !data) {
+    return res.status(400).json({ erro: 'Parâmetros obrigatórios: timeCasa, timeFora, data' });
   }
 
-  btnAtualizar.addEventListener('click', buscarOdds);
-  buscarOdds(); // Busca inicial
+  try {
+    const options = {
+      method: 'GET',
+      url: 'https://v3.football.api-sports.io/odds',
+      params: {
+        league: 39, // Premier League
+        season: 2024,
+        date: data,
+        bet: 'Half Time / Full Time'
+      },
+      headers: {
+        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-rapidapi-key': API_FOOTBALL_KEY
+      }
+    };
+
+    const response = await axios.request(options);
+    const jogos = response.data.response || [];
+
+    const oddsMap = {};
+
+    for (const jogo of jogos) {
+      const home = jogo.teams?.home?.name?.toLowerCase();
+      const away = jogo.teams?.away?.name?.toLowerCase();
+
+      if (
+        home?.includes(timeCasa.toLowerCase()) &&
+        away?.includes(timeFora.toLowerCase())
+      ) {
+        const apostas = jogo.bookmakers?.[0]?.bets?.[0]?.values || [];
+
+        apostas.forEach(opcao => {
+          const nome = opcao.value;
+          const odd = opcao.odd;
+
+          switch (nome) {
+            case 'Home/Home':
+              oddsMap['Casa/Casa'] = odd;
+              break;
+            case 'Home/Draw':
+              oddsMap['Casa/Empate'] = odd;
+              break;
+            case 'Home/Away':
+              oddsMap['Casa/Fora'] = odd;
+              break;
+            case 'Draw/Home':
+              oddsMap['Empate/Casa'] = odd;
+              break;
+          }
+        });
+
+        break; // Já achou o jogo, não precisa continuar
+      }
+    }
+
+    res.json(oddsMap);
+  } catch (error) {
+    console.error('Erro ao buscar odds extras da API-Football:', error.response?.data || error.message);
+    res.status(500).json({ erro: 'Erro ao buscar odds extras da API-Football' });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
