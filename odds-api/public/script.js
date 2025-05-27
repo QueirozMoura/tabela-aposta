@@ -19,13 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const casaAposta of jogo.odds) {
           const extras = await buscarOddsExtras(jogo.timeCasa, jogo.timeFora, jogo.data);
 
+          const oddCasa = parseFloat(casaAposta.h2h?.home ?? 0);
+          const oddEmpate = parseFloat(casaAposta.h2h?.draw ?? 0);
+          const oddFora = parseFloat(casaAposta.h2h?.away ?? 0);
+
+          // Determina a maior odd
+          const maiorOdd = Math.max(oddCasa, oddEmpate, oddFora);
+
           const tr = document.createElement('tr');
 
           tr.innerHTML = `
             <td>${jogo.timeCasa} x ${jogo.timeFora}</td>
-            <td>${casaAposta.h2h?.home ?? '-'}</td>
-            <td>${casaAposta.h2h?.draw ?? '-'}</td>
-            <td>${casaAposta.h2h?.away ?? '-'}</td>
+            <td class="${oddCasa === maiorOdd ? 'maior-odd' : ''}">${oddCasa || '-'}</td>
+            <td class="${oddEmpate === maiorOdd ? 'maior-odd' : ''}">${oddEmpate || '-'}</td>
+            <td class="${oddFora === maiorOdd ? 'maior-odd' : ''}">${oddFora || '-'}</td>
             <td>${casaAposta.over ?? '-'}</td>
             <td>${casaAposta.under ?? '-'}</td>
             <td>${extras['Casa/Casa'] ?? '-'}</td>
@@ -35,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
 
           tabelaBody.appendChild(tr);
-          destacarMaiorOdd(tr);
         }
       }
     } catch (error) {
@@ -53,19 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erro ao buscar odds extras:', error.response?.data ?? error.message);
       return {};
     }
-  }
-
-  function destacarMaiorOdd(tr) {
-    const indices = [1, 2, 3]; // índices de Casa, Empate e Fora
-    const odds = indices.map(i => parseFloat(tr.children[i].textContent) || 0);
-    const maior = Math.max(...odds);
-
-    indices.forEach(i => {
-      if (parseFloat(tr.children[i].textContent) === maior) {
-        tr.children[i].style.backgroundColor = '#ffff00'; // amarelo
-        tr.children[i].style.fontWeight = 'bold';
-      }
-    });
   }
 
   // Carrega odds ao abrir a página
