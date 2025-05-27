@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
 
           tabelaBody.appendChild(tr);
+          destacarMaiorOdd(tr);
         }
       }
     } catch (error) {
@@ -52,6 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erro ao buscar odds extras:', error.response?.data ?? error.message);
       return {};
     }
+  }
+
+  function destacarMaiorOdd(tr) {
+    const indices = [1, 2, 3]; // índices de Casa, Empate e Fora
+    const odds = indices.map(i => parseFloat(tr.children[i].textContent) || 0);
+    const maior = Math.max(...odds);
+
+    indices.forEach(i => {
+      if (parseFloat(tr.children[i].textContent) === maior) {
+        tr.children[i].style.backgroundColor = '#ffff00'; // amarelo
+        tr.children[i].style.fontWeight = 'bold';
+      }
+    });
   }
 
   // Carrega odds ao abrir a página
