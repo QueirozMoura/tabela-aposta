@@ -1,6 +1,6 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +14,6 @@ app.get('/', (req, res) => {
   res.send('API de Odds rodando 🔥');
 });
 
-// Rota principal: Odds H2H e Totals da The Odds API
 app.get('/api/odds/futebol', async (req, res) => {
   try {
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_epl/odds', {
