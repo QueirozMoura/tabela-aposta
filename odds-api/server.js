@@ -1,51 +1,57 @@
-// server.js
 import express from 'express';
+import axios from 'axios';
 import cors from 'cors';
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Render usa a variável de ambiente PORT
+const PORT = 3000;
 
 app.use(cors());
-app.use(express.json());
 
-// Endpoint principal de odds de futebol
-app.get('/api/odds/futebol', (req, res) => {
-  const dados = [
-    {
-      timeCasa: 'Flamengo',
-      timeFora: 'Palmeiras',
-      data: '2025-05-28',
-      odds: [
-        {
-          casa: 'Betano',
+const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+const API_URL = 'https://api.the-odds-api.com/v4/sports/soccer_brazil_campeonato/odds/';
+
+app.get('/api/odds/futebol', async (req, res) => {
+  try {
+    const response = await axios.get(API_URL, {
+      params: {
+        regions: 'br',
+        markets: 'h2h,over_under',
+        oddsFormat: 'decimal',
+        apiKey: API_KEY
+      }
+    });
+
+    const jogos = response.data.map(jogo => {
+      const timeCasa = jogo.home_team;
+      const timeFora = jogo.away_team;
+      const data = jogo.commence_time.slice(0, 10);
+
+      const odds = jogo.bookmakers.map(book => {
+        const h2h = book.markets.find(m => m.key === 'h2h')?.outcomes || [];
+        const overUnder = book.markets.find(m => m.key === 'over_under')?.outcomes || [];
+
+        return {
+          casa: book.title,
           h2h: {
-            home: 2.1,
-            draw: 3.4,
-            away: 3.0
+            home: h2h.find(o => o.name === timeCasa)?.price ?? null,
+            draw: h2h.find(o => o.name === 'Draw')?.price ?? null,
+            away: h2h.find(o => o.name === timeFora)?.price ?? null
           },
-          over: 1.9,
-          under: 1.8
-        }
-      ]
-    }
-  ];
+          over: overUnder.find(o => o.name === 'Over 2.5')?.price ?? null,
+          under: overUnder.find(o => o.name === 'Under 2.5')?.price ?? null
+        };
+      });
 
-  res.json(dados);
+      return { timeCasa, timeFora, data, odds };
+    });
+
+    res.json(jogos);
+  } catch (error) {
+    console.error('Erro ao buscar odds:', error.response?.data || error.message);
+    res.status(500).json({ erro: 'Erro ao buscar odds' });
+  }
 });
 
-// Endpoint extra
-app.get('/api/odds-extras/htft', (req, res) => {
-  const { timeCasa, timeFora, data } = req.query;
-
-  res.json({
-    'Casa/Casa': 3.2,
-    'Casa/Empate': 5.1,
-    'Casa/Fora': 12.0,
-    'Empate/Casa': 7.4
-  });
-});
-
-// Inicia o servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
