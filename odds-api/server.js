@@ -5,7 +5,6 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Habilita CORS para todas as origens
 app.use(cors());
 
 app.get('/', (req, res) => {
@@ -25,18 +24,15 @@ app.get('/api/odds/futebol', async (req, res) => {
 
     const dados = response.data;
 
-    // Normaliza os dados para frontend
     const jogosNormalizados = dados.map(jogo => {
       const timeCasa = jogo.home_team;
       const timeFora = jogo.away_team;
-      const data = jogo.commence_time;
+      const commence_time = jogo.commence_time;
 
-      // odds por casa de aposta
       const odds = jogo.bookmakers.map(bookmaker => {
-        // Extrai mercados h2h e over_under, se existirem
-        let h2h = null;
-        let over = null;
-        let under = null;
+        let h2h = { home: 0, draw: 0, away: 0 };
+        let over = 0;
+        let under = 0;
 
         bookmaker.markets.forEach(market => {
           if (market.key === 'h2h') {
@@ -46,17 +42,16 @@ app.get('/api/odds/futebol', async (req, res) => {
             const awayOutcome = outcomes.find(o => o.name === timeFora);
 
             h2h = {
-              home: homeOutcome ? homeOutcome.price : null,
-              draw: drawOutcome ? drawOutcome.price : null,
-              away: awayOutcome ? awayOutcome.price : null,
+              home: homeOutcome ? homeOutcome.price : 0,
+              draw: drawOutcome ? drawOutcome.price : 0,
+              away: awayOutcome ? awayOutcome.price : 0,
             };
           } else if (market.key === 'over_under') {
-            // geralmente tem dois outcomes: over 2.5 e under 2.5
             const overOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('over'));
             const underOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('under'));
 
-            over = overOutcome ? overOutcome.price : null;
-            under = underOutcome ? underOutcome.price : null;
+            over = overOutcome ? overOutcome.price : 0;
+            under = underOutcome ? underOutcome.price : 0;
           }
         });
 
@@ -71,7 +66,7 @@ app.get('/api/odds/futebol', async (req, res) => {
       return {
         timeCasa,
         timeFora,
-        data,
+        commence_time,
         odds
       };
     });
