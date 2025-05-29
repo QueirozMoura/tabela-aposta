@@ -12,17 +12,33 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/odds/futebol', async (req, res) => {
-  try {
-    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer_br/odds', {
-      params: {
-        apiKey: '5efb88d1faf5b16676df21b8ce71d6fe',
-        regions: 'br',
-        markets: 'h2h,over_under',
-        oddsFormat: 'decimal'
-      }
-    });
+  const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
-    const dados = response.data;
+  const ligas = [
+    'soccer_brazil_campeonato',
+    'soccer_epl',
+    'soccer_spain_la_liga',
+    'soccer_italy_serie_a',
+    'soccer_uefa_champs_league'
+  ];
+
+  try {
+    const respostas = await Promise.allSettled(
+      ligas.map(liga =>
+        axios.get(`https://api.the-odds-api.com/v4/sports/${liga}/odds`, {
+          params: {
+            apiKey: API_KEY,
+            regions: 'br,eu',
+            markets: 'h2h,over_under',
+            oddsFormat: 'decimal',
+          }
+        })
+      )
+    );
+
+    const dados = respostas
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value.data);
 
     const jogosNormalizados = dados.map(jogo => {
       const timeCasa = jogo.home_team;
