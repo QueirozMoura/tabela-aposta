@@ -7,15 +7,14 @@ const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
 
 const PORT = process.env.PORT || 3000;
 
-// Defina aqui as casas permitidas
 const allowedBookmakers = ['bet365', 'betano', 'kto', 'marathonbet', 'paddypower'];
 
-// Habilita CORS para um domínio específico
+// Habilita CORS para o domínio do seu front-end
 app.use(cors({
   origin: 'https://queirozmoura.github.io'
 }));
 
-// Middleware manual para garantir os headers CORS (opcional, mas recomendado)
+// Middleware extra para CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://queirozmoura.github.io');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
@@ -23,26 +22,23 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static('public')); // arquivos estáticos se houver
+app.use(express.static('public'));
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds?apiKey=${API_KEY}&regions=eu,uk,us&markets=h2h,totals&oddsFormat=decimal`;
 
-    console.log('Consultando Odds API:', url);
+    console.log('➡️ Consultando Odds API com URL:\n', url);
 
     const response = await axios.get(url);
 
     if (!response.data || response.data.length === 0) {
-      console.log('Nenhum dado retornado da API externa');
+      console.log('⚠️ Nenhum dado retornado da API externa');
       return res.json([]);
     }
 
     const jogos = response.data.map(match => {
       const bookmakers = match.bookmakers || [];
-      if (bookmakers.length === 0) {
-        console.log(`Sem bookmakers para o jogo ${match.home_team} x ${match.away_team}`);
-      }
 
       const filteredBookmakers = bookmakers.filter(bm =>
         allowedBookmakers.includes(bm.key)
@@ -61,11 +57,9 @@ app.get('/api/odds/futebol', async (req, res) => {
         let over = null, under = null;
         if (totalsMarket) {
           for (const outcome of totalsMarket.outcomes) {
-            if (outcome.name.toLowerCase().includes('over 2.5')) {
-              over = outcome.price;
-            } else if (outcome.name.toLowerCase().includes('under 2.5')) {
-              under = outcome.price;
-            }
+            const name = outcome.name.toLowerCase();
+            if (name.includes('over 2.5')) over = outcome.price;
+            if (name.includes('under 2.5')) under = outcome.price;
           }
         }
 
@@ -73,8 +67,8 @@ app.get('/api/odds/futebol', async (req, res) => {
           casa: bm.title,
           key: bm.key,
           h2h: h2hOdds,
-          over: over,
-          under: under
+          over,
+          under
         };
       });
 
@@ -83,17 +77,25 @@ app.get('/api/odds/futebol', async (req, res) => {
         home_team: match.home_team,
         away_team: match.away_team,
         commence_time: match.commence_time,
-        odds: odds
+        odds
       };
     });
 
     res.json(jogos);
   } catch (error) {
-    console.error('Erro ao buscar odds da API externa:', error);
+    console.error('❌ Erro ao buscar odds da API externa:', error.message);
+
+    // Mostra detalhes do erro da API
+    if (error.response) {
+      console.error('➡️ STATUS:', error.response.status);
+      console.error('➡️ HEADERS:', error.response.headers);
+      console.error('➡️ DATA:', error.response.data);
+    }
+
     res.status(500).json({ error: 'Erro ao buscar odds da API externa' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
