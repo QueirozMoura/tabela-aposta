@@ -16,7 +16,7 @@ app.get('/api/odds/futebol', async (req, res) => {
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer/odds', {
       params: {
         apiKey: '5efb88d1faf5b16676df21b8ce71d6fe',
-        regions: 'eu,uk,us',
+        regions: 'eu,uk,us,br',
         markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
@@ -24,28 +24,48 @@ app.get('/api/odds/futebol', async (req, res) => {
 
     const dados = response.data;
 
+    const casasPermitidas = ['bet365', 'kto', 'betano', 'marathonbet'];
+
     const jogosNormalizados = dados.map(jogo => {
       const timeCasa = jogo.home_team;
       const timeFora = jogo.away_team;
       const commence_time = jogo.commence_time;
 
-      const odds = jogo.bookmakers.map(bookmaker => {
-        let h2h = { home: 0, draw: 0, away: 0 };
+      const odds = jogo.bookmakers
+        .filter(bookmaker => casasPermitidas.includes(bookmaker.key))
+        .map(bookmaker => {
+          let h2h = { home: 0, draw: 0, away: 0 };
+          let totals = { over: 0, under: 0 };
 
-        const mercadoH2H = bookmaker.markets.find(m => m.key === 'h2h');
-        if (mercadoH2H) {
-          mercadoH2H.outcomes.forEach(o => {
-            if (o.name === timeCasa) h2h.home = o.price;
-            else if (o.name === timeFora) h2h.away = o.price;
-            else if (o.name.toLowerCase().includes('draw')) h2h.draw = o.price;
+          bookmaker.markets.forEach(market => {
+            if (market.key === 'h2h') {
+              const outcomes = market.outcomes;
+              const homeOutcome = outcomes.find(o => o.name === timeCasa);
+              const drawOutcome = outcomes.find(o => o.name.toLowerCase() === 'draw' || o.name.toLowerCase() === 'empate');
+              const awayOutcome = outcomes.find(o => o.name === timeFora);
+
+              h2h = {
+                home: homeOutcome ? homeOutcome.price : 0,
+                draw: drawOutcome ? drawOutcome.price : 0,
+                away: awayOutcome ? awayOutcome.price : 0,
+              };
+            } else if (market.key === 'totals') {
+              const overOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('over'));
+              const underOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('under'));
+
+              totals = {
+                over: overOutcome ? overOutcome.price : 0,
+                under: underOutcome ? underOutcome.price : 0
+              };
+            }
           });
-        }
 
-        return {
-          casa: bookmaker.title,
-          h2h
-        };
-      });
+          return {
+            casa: bookmaker.title,
+            h2h,
+            totals
+          };
+        });
 
       return {
         timeCasa,
