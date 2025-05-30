@@ -16,8 +16,8 @@ app.get('/api/odds/futebol', async (req, res) => {
     const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer/odds', {
       params: {
         apiKey: '5efb88d1faf5b16676df21b8ce71d6fe',
-        regions: 'eu,uk,us', // Regiões válidas
-        markets: 'h2h,over_under',
+        regions: 'eu,uk,us',
+        markets: 'h2h,totals',
         oddsFormat: 'decimal'
       }
     });
@@ -46,7 +46,7 @@ app.get('/api/odds/futebol', async (req, res) => {
               draw: drawOutcome ? drawOutcome.price : 0,
               away: awayOutcome ? awayOutcome.price : 0,
             };
-          } else if (market.key === 'over_under') {
+          } else if (market.key === 'totals') {
             const overOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('over'));
             const underOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('under'));
 
@@ -73,8 +73,7 @@ app.get('/api/odds/futebol', async (req, res) => {
 
     res.json(jogosNormalizados);
   } catch (error) {
-    console.error('Erro ao buscar odds:', error);
-
+    console.error('Erro ao buscar odds:', error.message);
     res.status(500).json({ error: 'Erro ao buscar odds da API externa' });
   }
 });
