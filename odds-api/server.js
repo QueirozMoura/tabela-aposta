@@ -73,7 +73,8 @@ app.get('/api/odds/futebol', async (req, res) => {
 
     res.json(jogosNormalizados);
   } catch (error) {
-    console.error('Erro ao buscar odds:', error.response?.data || error.message);
+    console.error('Erro ao buscar odds:', error);
+
     res.status(500).json({ error: 'Erro ao buscar odds da API externa' });
   }
 });
