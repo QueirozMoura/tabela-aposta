@@ -28,17 +28,22 @@ app.get('/api/odds/futebol', async (req, res) => {
   try {
     const url = `https://api.the-odds-api.com/v4/sports/soccer/odds?apiKey=${API_KEY}&regions=eu,uk,us&markets=h2h,totals&oddsFormat=decimal`;
 
-    console.log(new Date().toISOString());
-    console.log(url);
+    console.log('Consultando Odds API:', url);
 
     const response = await axios.get(url);
 
     if (!response.data || response.data.length === 0) {
+      console.log('Nenhum dado retornado da API externa');
       return res.json([]);
     }
 
     const jogos = response.data.map(match => {
-      const filteredBookmakers = match.bookmakers.filter(bm =>
+      const bookmakers = match.bookmakers || [];
+      if (bookmakers.length === 0) {
+        console.log(`Sem bookmakers para o jogo ${match.home_team} x ${match.away_team}`);
+      }
+
+      const filteredBookmakers = bookmakers.filter(bm =>
         allowedBookmakers.includes(bm.key)
       );
 
@@ -83,7 +88,7 @@ app.get('/api/odds/futebol', async (req, res) => {
 
     res.json(jogos);
   } catch (error) {
-    console.error('Erro ao buscar odds da API externa:', error.message || error);
+    console.error('Erro ao buscar odds da API externa:', error);
     res.status(500).json({ error: 'Erro ao buscar odds da API externa' });
   }
 });
