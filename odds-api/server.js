@@ -1,17 +1,28 @@
 const express = require('express');
-const cors = require('cors');  // importe o cors
+const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
-app.use(cors());
-
 const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
-
 const PORT = process.env.PORT || 3000;
 
+// Defina aqui as casas permitidas
 const allowedBookmakers = ['bet365', 'betano', 'kto', 'marathonbet', 'paddypower'];
 
-app.use(express.static('public')); // Se tiver arquivos estáticos (html, css, js)
+// Habilita CORS para um domínio específico
+app.use(cors({
+  origin: 'https://queirozmoura.github.io'
+}));
+
+// Middleware manual para garantir os headers CORS (opcional, mas recomendado)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://queirozmoura.github.io');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
+app.use(express.static('public')); // arquivos estáticos se houver
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
@@ -26,29 +37,21 @@ app.get('/api/odds/futebol', async (req, res) => {
       return res.json([]);
     }
 
-    // Normaliza dados
     const jogos = response.data.map(match => {
-      // Filtra casas que queremos
       const filteredBookmakers = match.bookmakers.filter(bm =>
         allowedBookmakers.includes(bm.key)
       );
 
-      // Monta array de odds simplificadas para cada casa
       const odds = filteredBookmakers.map(bm => {
-        // Procura mercado h2h
         const h2hMarket = bm.markets.find(m => m.key === 'h2h');
-        // Procura mercado totals (over/under 2.5 gols)
         const totalsMarket = bm.markets.find(m => m.key === 'totals');
 
-        // Extrai odds h2h (casa, empate, fora)
         const h2hOdds = {
           home: h2hMarket ? h2hMarket.outcomes.find(o => o.name === match.home_team)?.price || null : null,
           draw: h2hMarket ? h2hMarket.outcomes.find(o => o.name === 'Draw')?.price || null : null,
           away: h2hMarket ? h2hMarket.outcomes.find(o => o.name === match.away_team)?.price || null : null,
         };
 
-        // Extrai odds totals 2.5 gols (over e under)
-        // Aqui assumimos que o mercado totals tem outcomes "Over 2.5" e "Under 2.5"
         let over = null, under = null;
         if (totalsMarket) {
           for (const outcome of totalsMarket.outcomes) {
