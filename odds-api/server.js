@@ -4,6 +4,7 @@ const axios = require('axios');
 const app = express();
 
 const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+
 const PORT = process.env.PORT || 3000;
 
 // Defina aqui as casas permitidas
