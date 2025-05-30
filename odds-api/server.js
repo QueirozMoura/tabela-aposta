@@ -1,83 +1,83 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
-
 const app = express();
+
+const API_KEY = '5efb88d1faf5b16676df21b8ce71d6fe';
+
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+const allowedBookmakers = ['bet365', 'betano', 'kto', 'marathonbet', 'paddypower'];
 
-app.get('/', (req, res) => {
-  res.send('API de odds está funcionando!');
-});
+app.use(express.static('public')); // Se tiver arquivos estáticos (html, css, js)
 
 app.get('/api/odds/futebol', async (req, res) => {
   try {
-    const response = await axios.get('https://api.the-odds-api.com/v4/sports/soccer/odds', {
-      params: {
-        apiKey: '5efb88d1faf5b16676df21b8ce71d6fe',
-        regions: 'eu,uk,us,br',
-        markets: 'h2h,totals',
-        oddsFormat: 'decimal'
-      }
-    });
+    const url = `https://api.the-odds-api.com/v4/sports/soccer/odds?apiKey=${API_KEY}&regions=eu,uk,us&markets=h2h,totals&oddsFormat=decimal`;
 
-    const dados = response.data;
+    console.log(new Date().toISOString());
+    console.log(url);
 
-    const casasPermitidas = ['bet365', 'kto', 'betano', 'marathonbet'];
+    const response = await axios.get(url);
 
-    const jogosNormalizados = dados.map(jogo => {
-      const timeCasa = jogo.home_team;
-      const timeFora = jogo.away_team;
-      const commence_time = jogo.commence_time;
+    if (!response.data || response.data.length === 0) {
+      return res.json([]);
+    }
 
-      const odds = jogo.bookmakers
-        .filter(bookmaker => casasPermitidas.includes(bookmaker.key))
-        .map(bookmaker => {
-          let h2h = { home: 0, draw: 0, away: 0 };
-          let totals = { over: 0, under: 0 };
+    // Normaliza dados
+    const jogos = response.data.map(match => {
+      // Filtra casas que queremos
+      const filteredBookmakers = match.bookmakers.filter(bm =>
+        allowedBookmakers.includes(bm.key)
+      );
 
-          bookmaker.markets.forEach(market => {
-            if (market.key === 'h2h') {
-              const outcomes = market.outcomes;
-              const homeOutcome = outcomes.find(o => o.name === timeCasa);
-              const drawOutcome = outcomes.find(o => o.name.toLowerCase() === 'draw' || o.name.toLowerCase() === 'empate');
-              const awayOutcome = outcomes.find(o => o.name === timeFora);
+      // Monta array de odds simplificadas para cada casa
+      const odds = filteredBookmakers.map(bm => {
+        // Procura mercado h2h
+        const h2hMarket = bm.markets.find(m => m.key === 'h2h');
+        // Procura mercado totals (over/under 2.5 gols)
+        const totalsMarket = bm.markets.find(m => m.key === 'totals');
 
-              h2h = {
-                home: homeOutcome ? homeOutcome.price : 0,
-                draw: drawOutcome ? drawOutcome.price : 0,
-                away: awayOutcome ? awayOutcome.price : 0,
-              };
-            } else if (market.key === 'totals') {
-              const overOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('over'));
-              const underOutcome = market.outcomes.find(o => o.name.toLowerCase().includes('under'));
+        // Extrai odds h2h (casa, empate, fora)
+        const h2hOdds = {
+          home: h2hMarket ? h2hMarket.outcomes.find(o => o.name === match.home_team)?.price || null : null,
+          draw: h2hMarket ? h2hMarket.outcomes.find(o => o.name === 'Draw')?.price || null : null,
+          away: h2hMarket ? h2hMarket.outcomes.find(o => o.name === match.away_team)?.price || null : null,
+        };
 
-              totals = {
-                over: overOutcome ? overOutcome.price : 0,
-                under: underOutcome ? underOutcome.price : 0
-              };
+        // Extrai odds totals 2.5 gols (over e under)
+        // Aqui assumimos que o mercado totals tem outcomes "Over 2.5" e "Under 2.5"
+        let over = null, under = null;
+        if (totalsMarket) {
+          for (const outcome of totalsMarket.outcomes) {
+            if (outcome.name.toLowerCase().includes('over 2.5')) {
+              over = outcome.price;
+            } else if (outcome.name.toLowerCase().includes('under 2.5')) {
+              under = outcome.price;
             }
-          });
+          }
+        }
 
-          return {
-            casa: bookmaker.title,
-            h2h,
-            totals
-          };
-        });
+        return {
+          casa: bm.title,
+          key: bm.key,
+          h2h: h2hOdds,
+          over: over,
+          under: under
+        };
+      });
 
       return {
-        timeCasa,
-        timeFora,
-        commence_time,
-        odds
+        id: match.id,
+        home_team: match.home_team,
+        away_team: match.away_team,
+        commence_time: match.commence_time,
+        odds: odds
       };
     });
 
-    res.json(jogosNormalizados);
+    res.json(jogos);
   } catch (error) {
-    console.error('Erro ao buscar odds:', error.message);
+    console.error('Erro ao buscar odds da API externa:', error.message || error);
     res.status(500).json({ error: 'Erro ao buscar odds da API externa' });
   }
 });
