@@ -18,10 +18,8 @@ app.use(express.static('public'));
 // Endpoint para buscar odds de futebol
 app.get('/api/odds/futebol', async (req, res) => {
   try {
-    // Exemplo de chamada: pega odds de jogos ao vivo ou próximos
     const url = 'https://v3.football.api-sports.io/odds?league=35&season=2024'; 
-    // Obs: Ajuste 'league' e 'season' conforme sua necessidade
-    // league=35 é Premier League, por exemplo.
+    // league=35 é Premier League, ajuste se necessário
 
     const response = await axios.get(url, {
       headers: { 'x-apisports-key': API_KEY }
@@ -34,14 +32,20 @@ app.get('/api/odds/futebol', async (req, res) => {
     const jogos = response.data.response.map(match => {
       const bookmakers = match.bookmakers || [];
 
+      // Filtra apenas as casas que você quer
       const filteredBookmakers = bookmakers.filter(bm =>
         allowedBookmakers.includes(bm.name.toLowerCase())
       );
 
-      // Para cada bookmaker, pega odds de 1X2 e Over/Under 2.5
+      // Para cada casa de aposta, extrai as odds de 1X2 e Over/Under 2.5
       const odds = filteredBookmakers.map(bm => {
-        const bet1X2 = bm.bets.find(b => b.name.toLowerCase().includes('match winner') || b.name.toLowerCase().includes('1x2'));
-        const betOU = bm.bets.find(b => b.name.toLowerCase().includes('over/under'));
+        // Acha o mercado 1X2 (Match Winner) e Over/Under
+        const bet1X2 = bm.bets.find(b =>
+          b.name.toLowerCase().includes('match winner') || b.name.toLowerCase().includes('1x2')
+        );
+        const betOU = bm.bets.find(b =>
+          b.name.toLowerCase().includes('over/under')
+        );
 
         let home = null, draw = null, away = null;
         if (bet1X2) {
