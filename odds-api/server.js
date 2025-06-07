@@ -3,49 +3,48 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
-const API_KEY = 'f81d82eb779e37ce5b0b39ac0b82a95';  // Sua chave API-Football aqui
+const API_KEY = 'f81d82eb779e37ce5b0b39ac0b82a95';  // Sua chave API-Football
 const PORT = process.env.PORT || 3000;
 
+// Deixe aberto para teste, depois pode restringir
 const allowedBookmakers = ['betano', 'bet365', 'kto', 'marathonbet', 'paddypower'];
 
-// CORS para seu front
 app.use(cors({
   origin: 'https://queirozmoura.github.io'
 }));
 
 app.use(express.static('public'));
 
-// Endpoint para buscar odds de futebol
 app.get('/api/odds/futebol', async (req, res) => {
   try {
-    const url = 'https://v3.football.api-sports.io/odds?league=35&season=2024'; 
-    // league=35 é Premier League, ajuste se necessário
-
+    const url = 'https://v3.football.api-sports.io/odds?league=35&season=2024';
     const response = await axios.get(url, {
       headers: { 'x-apisports-key': API_KEY }
     });
 
     if (!response.data.response || response.data.response.length === 0) {
+      console.log('Nenhum jogo encontrado na API-Football.');
       return res.json([]);
     }
 
     const jogos = response.data.response.map(match => {
       const bookmakers = match.bookmakers || [];
 
-      // Filtra apenas as casas que você quer
+      // Para DEBUG, mostre os nomes das casas que vieram:
+      console.log('Bookmakers no jogo:', bookmakers.map(b => b.name));
+
       const filteredBookmakers = bookmakers.filter(bm =>
         allowedBookmakers.includes(bm.name.toLowerCase())
       );
 
-      // Para cada casa de aposta, extrai as odds de 1X2 e Over/Under 2.5
+      // Se quiser testar sem filtro, comente a linha acima e use:
+      // const filteredBookmakers = bookmakers;
+
       const odds = filteredBookmakers.map(bm => {
-        // Acha o mercado 1X2 (Match Winner) e Over/Under
-        const bet1X2 = bm.bets.find(b =>
+        const bet1X2 = bm.bets.find(b => 
           b.name.toLowerCase().includes('match winner') || b.name.toLowerCase().includes('1x2')
         );
-        const betOU = bm.bets.find(b =>
-          b.name.toLowerCase().includes('over/under')
-        );
+        const betOU = bm.bets.find(b => b.name.toLowerCase().includes('over/under'));
 
         let home = null, draw = null, away = null;
         if (bet1X2) {
@@ -85,6 +84,7 @@ app.get('/api/odds/futebol', async (req, res) => {
       };
     });
 
+    console.log(`Jogos encontrados e enviados: ${jogos.length}`);
     res.json(jogos);
 
   } catch (error) {
